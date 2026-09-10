@@ -1,6 +1,8 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { MaterialModule } from '../../shared/material.module';
 import { UserService } from '../../core/service/user.service';
 import { Login } from '../../core/models/Login';
@@ -17,9 +19,11 @@ export class LoginComponent implements OnInit {
   private userService = inject(UserService);
   private formBuilder = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
   loginForm: FormGroup = new FormGroup({});
   submitted: boolean = false;
   invalidCredentials: boolean = false;
+  serverUnreachable: boolean = false;
 
   ngOnInit() {
     this.loginForm = this.formBuilder.group(
@@ -37,6 +41,7 @@ export class LoginComponent implements OnInit {
   onSubmit(): void {
     this.submitted = true;
     this.invalidCredentials = false;
+    this.serverUnreachable = false;
     if (this.loginForm.invalid) {
       return;
     }
@@ -47,12 +52,18 @@ export class LoginComponent implements OnInit {
     this.userService.login(credentials)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (x) => {
-          alert('SUCCESS!! :-)');
-          // TODO : rediriger l'utilisateur vers son espace une fois qu'il existera
+        next: () => {
+          this.router.navigate(['/']);
         },
-        error: (x) => {
-          this.invalidCredentials = true;
+        error: (error: HttpErrorResponse) => {
+          // 401 is the only status the backend returns for a bad login/password;
+          // anything else (0 for a direct network failure, or 5xx from the dev proxy
+          // when it can't reach the backend at all) means the server itself is unreachable
+          if (error.status === 401) {
+            this.invalidCredentials = true;
+          } else {
+            this.serverUnreachable = true;
+          }
         }
       });
   }

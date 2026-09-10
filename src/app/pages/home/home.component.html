@@ -1,0 +1,9 @@
+<div class="card m-3">
+  <div class="card-body">
+    @if (username$ | async; as username) {
+      <p>Bienvenue, {{ username }} !</p>
+    } @else {
+      <p>Bienvenue ! Connectez-vous pour accéder à votre espace.</p>
+    }
+  </div>
+</div>

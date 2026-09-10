@@ -1,0 +1,18 @@
+<mat-toolbar color="primary">
+  <a class="app-title" routerLink="/">EtuBibliothèque</a>
+  <span class="spacer"></span>
+  @if (username$ | async; as username) {
+    <button mat-button [matMenuTriggerFor]="userMenu">
+      <mat-icon>account_circle</mat-icon>
+      {{ username }}
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Déconnexion</span>
+      </button>
+    </mat-menu>
+  } @else {
+    <a mat-button routerLink="/login">Se connecter</a>
+  }
+</mat-toolbar>

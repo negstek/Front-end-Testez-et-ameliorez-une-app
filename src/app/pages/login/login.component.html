@@ -42,6 +42,12 @@
         </div>
       }
 
+      @if (serverUnreachable) {
+        <div class="alert alert-danger" role="alert">
+          Impossible de contacter le serveur. Veuillez réessayer plus tard.
+        </div>
+      }
+
       <div class="text-center">
         <button class="btn btn-primary mr-1">Login</button>
       </div>

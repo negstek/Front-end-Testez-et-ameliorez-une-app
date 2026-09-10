@@ -1,0 +1,16 @@
+mat-toolbar {
+  position: relative;
+}
+
+.app-title {
+  /* absolutely centered so it stays in the middle regardless of the width of the user menu on the right */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: inherit;
+  text-decoration: none;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}

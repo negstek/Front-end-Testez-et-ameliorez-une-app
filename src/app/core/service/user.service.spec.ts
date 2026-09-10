@@ -21,6 +21,7 @@ describe('UserService', () => {
 
   afterEach(() => {
     httpTestingController.verify();
+    localStorage.clear();
   });
 
   it('should be created', () => {
@@ -29,7 +30,8 @@ describe('UserService', () => {
 
   it('should store the JWT returned by the backend after login', () => {
     const loginData = { login: 'jdoe', password: 'secret' };
-    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiamRvZSJ9.signature';
+    // payload is { "sub": "jdoe" }, matching the backend which puts the username in the JWT subject claim
+    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqZG9lIn0.signature';
 
     service.login(loginData).subscribe();
 
@@ -38,5 +40,19 @@ describe('UserService', () => {
     req.flush({ token });
 
     expect(localStorage.getItem('jwt')).toBe(token);
+  });
+
+  it('should expose the username decoded from the JWT subject claim after login', () => {
+    const loginData = { login: 'jdoe', password: 'secret' };
+    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqZG9lIn0.signature';
+
+    // flush() runs the login pipeline (and its tap side effect) synchronously,
+    // so the BehaviorSubject already holds the final value by the time we subscribe
+    service.login(loginData).subscribe();
+    httpTestingController.expectOne('/api/login').flush({ token });
+
+    let username: string | null = null;
+    service.username$.subscribe((value) => (username = value));
+    expect(username).toBe('jdoe');
   });
 });
