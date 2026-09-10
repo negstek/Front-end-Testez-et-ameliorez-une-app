@@ -1,0 +1,21 @@
+<div class="card m-3">
+  <h5 class="card-header">Détail de l'étudiant</h5>
+  <div class="card-body">
+    @if (notFound) {
+      <div class="alert alert-danger" role="alert">Étudiant introuvable.</div>
+    } @else if (student) {
+      <dl>
+        <dt>Prénom</dt>
+        <dd>{{ student.firstName }}</dd>
+        <dt>Nom</dt>
+        <dd>{{ student.lastName }}</dd>
+        <dt>Email</dt>
+        <dd>{{ student.email }}</dd>
+        <dt>Date de naissance</dt>
+        <dd>{{ student.birthDate }}</dd>
+      </dl>
+      <a mat-raised-button color="primary" [routerLink]="['/students', student.id, 'edit']">Modifier</a>
+    }
+    <a mat-button routerLink="/students">Retour à la liste</a>
+  </div>
+</div>

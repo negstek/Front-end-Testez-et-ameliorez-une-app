@@ -64,6 +64,10 @@ src/
 └── styles.css
 ```
 
+### Convention : `inject()` plutôt que l'injection par constructeur
+
+Tout le code (composants, guards) utilise systématiquement la fonction `inject()` (Angular 14+) au lieu de l'injection par constructeur — par exemple `private userService = inject(UserService);` en tête de classe plutôt que `constructor(private userService: UserService) {}`. Ce choix est autant une nécessité qu'une convention : les guards fonctionnels (`CanActivateFn`, voir `auth.guard.ts`) sont de simples fonctions sans constructeur, donc `inject()` y est la seule option possible. Utiliser le même mécanisme dans les composants évite de mélanger deux styles de DI selon qu'un fichier est une classe ou une fonction.
+
 ## 03 — Démarrage & routage
 
 ### De `main.ts` à l'écran affiché

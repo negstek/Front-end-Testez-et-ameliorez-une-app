@@ -1,0 +1,43 @@
+<div class="card m-3">
+  <h5 class="card-header">Étudiants</h5>
+  <div class="card-body">
+    <a mat-raised-button color="primary" routerLink="/students/new">Ajouter un étudiant</a>
+
+    @if (loadError) {
+      <div class="alert alert-danger mt-3" role="alert">
+        Impossible de charger la liste des étudiants.
+      </div>
+    }
+
+    <table class="table mt-3">
+      <thead>
+        <tr>
+          <th>Prénom</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Date de naissance</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (student of students; track student.id) {
+          <tr>
+            <td>{{ student.firstName }}</td>
+            <td>{{ student.lastName }}</td>
+            <td>{{ student.email }}</td>
+            <td>{{ student.birthDate }}</td>
+            <td>
+              <a mat-button [routerLink]="['/students', student.id]">Voir</a>
+              <a mat-button [routerLink]="['/students', student.id, 'edit']">Modifier</a>
+              <button mat-button color="warn" (click)="deleteStudent(student)">Supprimer</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5">Aucun étudiant.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

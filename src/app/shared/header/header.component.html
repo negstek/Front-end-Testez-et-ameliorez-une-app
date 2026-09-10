@@ -2,6 +2,7 @@
   <a class="app-title" routerLink="/">EtuBibliothèque</a>
   <span class="spacer"></span>
   @if (username$ | async; as username) {
+    <a mat-button routerLink="/students">Étudiants</a>
     <button mat-button [matMenuTriggerFor]="userMenu">
       <mat-icon>account_circle</mat-icon>
       {{ username }}

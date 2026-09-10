@@ -1,0 +1,88 @@
+<div class="card m-3">
+  <h5 class="card-header">{{ isEditMode ? "Modifier l'étudiant" : "Ajouter un étudiant" }}</h5>
+  <div class="card-body">
+    <form [formGroup]="studentForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label>Prénom</label>
+        <input
+          type="text"
+          formControlName="firstName"
+          class="form-control"
+          [ngClass]="{ 'is-invalid': submitted && form['firstName'].errors }"
+        />
+        @if (submitted && form['firstName'].errors) {
+          <div class="invalid-feedback">
+            @if (form['firstName'].errors?.['required']) {
+              <div>Le prénom est requis</div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label>Nom</label>
+        <input
+          type="text"
+          formControlName="lastName"
+          class="form-control"
+          [ngClass]="{ 'is-invalid': submitted && form['lastName'].errors }"
+        />
+        @if (submitted && form['lastName'].errors) {
+          <div class="invalid-feedback">
+            @if (form['lastName'].errors?.['required']) {
+              <div>Le nom est requis</div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input
+          type="email"
+          formControlName="email"
+          class="form-control"
+          [ngClass]="{ 'is-invalid': submitted && form['email'].errors }"
+        />
+        @if (submitted && form['email'].errors) {
+          <div class="invalid-feedback">
+            @if (form['email'].errors?.['required']) {
+              <div>L'email est requis</div>
+            }
+            @if (form['email'].errors?.['email']) {
+              <div>L'email n'est pas valide</div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label>Date de naissance</label>
+        <input
+          type="date"
+          formControlName="birthDate"
+          class="form-control"
+          [ngClass]="{ 'is-invalid': submitted && form['birthDate'].errors }"
+        />
+        @if (submitted && form['birthDate'].errors) {
+          <div class="invalid-feedback">
+            @if (form['birthDate'].errors?.['required']) {
+              <div>La date de naissance est requise</div>
+            }
+          </div>
+        }
+      </div>
+
+      @if (serverError) {
+        <div class="alert alert-danger" role="alert">
+          Une erreur est survenue (l'email est peut-être déjà utilisé par un autre étudiant). Vérifiez les informations et réessayez.
+        </div>
+      }
+
+      <div class="text-center">
+        <button class="btn btn-primary mr-1">{{ isEditMode ? 'Enregistrer' : 'Ajouter' }}</button>
+        <a class="btn btn-secondary" routerLink="/students">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>

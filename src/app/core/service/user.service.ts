@@ -42,6 +42,11 @@ export class UserService {
     this.usernameSubject.next(null);
   }
 
+  // synchronous check for route guards, which can't wait on the username$ observable
+  isLoggedIn(): boolean {
+    return !!localStorage.getItem('jwt');
+  }
+
   private readUsernameFromStorage(): string | null {
     const token = localStorage.getItem('jwt');
     if (!token) {
