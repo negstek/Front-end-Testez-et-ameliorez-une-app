@@ -2,18 +2,18 @@
 
 *Angular 19.2 · standalone components · Jest*
 
-Une application Angular réduite à l'essentiel : un unique écran d'inscription. Ce document explique comment le code est assemblé, trace le chemin d'une soumission de formulaire, et fait l'état des lieux réel des tests — mesuré en exécutant la suite Jest de ce dépôt.
+Application Angular affichée sous le nom **EtuBibliothèque** : inscription, connexion (JWT), page d'accueil personnalisée, et une gestion CRUD des étudiants protégée par authentification. Ce document explique comment le code est assemblé, trace les principaux flux, et fait l'état des lieux réel des tests — mesuré en exécutant la suite Jest de ce dépôt.
 
-`4 specs · 3 suites` · `85.1% instructions` · `0% branches` · `Angular Material`
+`7 specs · 4 suites` · `79.3% instructions` · `37.5% branches` · `Angular Material`
 
-**[↗ Version interactive (claude.ai)](https://claude.ai/code/artifact/2363a70b-e014-4dc7-902c-d1b51c17ff23)**
+**[↗ Version interactive (claude.ai)](https://claude.ai/code/artifact/2363a70b-e014-4dc7-902c-d1b51c17ff23)** — *généré lors d'une itération antérieure de ce document, peut ne plus refléter l'état ci-dessous.*
 
 ## Sommaire
 
 1. [Vue d'ensemble](#01--vue-densemble)
 2. [Arborescence](#02--structure)
 3. [Démarrage & routage](#03--démarrage--routage)
-4. [Formulaire d'inscription](#04--cœur-applicatif)
+4. [Cœur applicatif](#04--cœur-applicatif)
 5. [État des tests](#05--état-des-tests)
 6. [Pistes d'amélioration](#06--pistes-damélioration)
 
@@ -21,11 +21,13 @@ Une application Angular réduite à l'essentiel : un unique écran d'inscription
 
 ## 01 — Vue d'ensemble
 
-### Une seule fonctionnalité, bout en bout
+### Trois flux : compte, session, étudiants
 
-Le projet contient exactement un flux métier : créer un compte étudiant.
+Le projet couvre désormais trois flux métier : créer un compte, se connecter, et gérer une liste d'étudiants (CRUD) réservée aux utilisateurs connectés.
 
-L'application est bootstrapée sans `NgModule` racine — c'est un projet Angular 19 **standalone** : chaque composant déclare directement ses propres imports (`RouterOutlet`, `ReactiveFormsModule`, les modules Angular Material…). Elle expose une seule route fonctionnelle, `/register`, qui affiche un formulaire réactif (`ReactiveFormsModule`) habillé avec Angular Material. La soumission est censée appeler une API REST (`POST /api/register`) exposée par un backend local sur le port `8080`, via le proxy défini dans `proxy.conf.json` — cohérent avec le parcours OCR « Testez et améliorez une application », où le front est livré volontairement sous-testé pour servir de terrain d'exercice.
+L'application est bootstrapée sans `NgModule` racine — c'est un projet Angular 19 **standalone** : chaque composant déclare directement ses propres imports (`RouterOutlet`, `ReactiveFormsModule`, les modules Angular Material…), et l'injection de dépendances se fait partout via la fonction `inject()` plutôt que par constructeur (voir [02 — Structure](#convention--inject-plutôt-que-linjection-par-constructeur)) — y compris dans les guards fonctionnels, qui n'ont pas de constructeur.
+
+L'API REST (`/api/register`, `/api/login`, `/api/students/**`) est exposée par un backend local sur le port `8080`, via le proxy défini dans `proxy.conf.json`. Un intercepteur HTTP global (`jwtInterceptor`) attache le token JWT stocké en `localStorage` à chaque requête sortante. Un guard fonctionnel (`authGuard`) protège les routes `/students*` et redirige vers `/login` si l'utilisateur n'est pas connecté.
 
 Les tests tournent sous **Jest** (et non Karma/Jasmine, remplacés via `jest-preset-angular`), avec la couverture activée par défaut dans `jest.config.js`.
 
@@ -33,32 +35,46 @@ Les tests tournent sous **Jest** (et non Karma/Jasmine, remplacés via `jest-pre
 
 ### Arborescence de `src/`
 
-15 fichiers, trois dossiers fonctionnels : `core` (modèle + services), `pages` (l'écran), `shared` (Material).
+38 fichiers, quatre dossiers fonctionnels dans `core` (`guards`, `interceptors`, `models`, `service`), cinq écrans dans `pages`, un composant partagé (`header`) en plus de `material.module.ts`.
 
 ```text
 src/
 ├── app/
 │   ├── app.component.css
-│   ├── app.component.html      — <router-outlet/> uniquement
+│   ├── app.component.html      — <app-header/> puis <router-outlet/>
 │   ├── app.component.spec.ts
 │   ├── app.component.ts
-│   ├── app.config.ts           — providers racine (Http, Router…)
-│   ├── app.routes.ts           — 2 routes : '' et 'register'
+│   ├── app.config.ts           — providers racine : Http (+ jwtInterceptor), Router…
+│   ├── app.routes.ts           — 7 routes : '', register, login, students*
 │   ├── core/
+│   │   ├── guards/
+│   │   │   └── auth.guard.ts          — authGuard : isLoggedIn() sinon redirect /login
+│   │   ├── interceptors/
+│   │   │   └── jwt.interceptor.ts     — ajoute "Authorization: Bearer <jwt>"
 │   │   ├── models/
-│   │   │   └── Register.ts     — interface du payload
-│   │   └── service/
-│   │       ├── user-mock.service.ts   — doublure de test
-│   │       ├── user.service.spec.ts
-│   │       └── user.service.ts        — appel HTTP réel
+│   │   │   ├── Login.ts               — { login, password }
+│   │   │   ├── LoginResponse.ts       — { token }
+│   │   │   ├── Register.ts            — payload d'inscription
+│   │   │   ├── StudentRequest.ts      — payload CRUD (sans id)
+│   │   │   └── StudentResponse.ts     — payload CRUD (avec id)
+│   │   ├── service/
+│   │   │   ├── student-mock.service.ts — doublure de test (jamais branchée)
+│   │   │   ├── student.service.ts      — CRUD /api/students
+│   │   │   ├── user-mock.service.ts    — doublure de test
+│   │   │   ├── user.service.spec.ts
+│   │   │   └── user.service.ts         — register/login/logout, username$, isLoggedIn()
+│   │   └── utils/
+│   │       └── jwt.util.ts             — decodeJwt() : décode le payload base64url
 │   ├── pages/
-│   │   └── register/
-│   │       ├── register.component.css
-│   │       ├── register.component.html
-│   │       ├── register.component.spec.ts
-│   │       └── register.component.ts  — formulaire + soumission
+│   │   ├── home/                       — page d'accueil, salue l'utilisateur via username$
+│   │   ├── login/                      — formulaire + gestion des erreurs (401 / injoignable)
+│   │   ├── register/                   — formulaire + snackbar + redirection
+│   │   ├── student-detail/             — fiche lecture seule d'un étudiant
+│   │   ├── student-form/               — création + édition (même composant)
+│   │   └── student-list/               — liste + suppression
 │   └── shared/
-│       └── material.module.ts  — ré-export Angular Material
+│       ├── header/                     — titre (lien accueil) + menu utilisateur
+│       └── material.module.ts          — ré-export Angular Material
 ├── index.html
 ├── main.ts                     — bootstrapApplication()
 └── styles.css
@@ -72,100 +88,123 @@ Tout le code (composants, guards) utilise systématiquement la fonction `inject(
 
 ### De `main.ts` à l'écran affiché
 
-Pas de `AppModule` : `bootstrapApplication` démarre directement `AppComponent` avec la configuration de `app.config.ts`.
+Pas de `AppModule` : `bootstrapApplication` démarre directement `AppComponent`, qui affiche le header sur toutes les routes puis délègue au routeur.
 
 ```mermaid
 flowchart LR
-    A["main.ts"] --> B["bootstrapApplication()\nappConfig: Http, Router,\nZoneChangeDetection"]
-    B --> C["AppComponent (racine)\n&lt;router-outlet/&gt;"]
+    A["main.ts"] --> B["bootstrapApplication()\nappConfig: Http + jwtInterceptor,\nRouter, ZoneChangeDetection"]
+    B --> C["AppComponent\n&lt;app-header/&gt;\n&lt;router-outlet/&gt;"]
     C --> D{"Router\névalue l'URL"}
-    D -- "path: ''" --> E["AppComponent\n(2ᵉ instance)\noutlet interne vide"]
-    D -- "path: 'register'" --> F["RegisterComponent\n(écran réel)"]
-    E -.-> C
+    D -- "''" --> E["HomeComponent"]
+    D -- "'register'" --> F["RegisterComponent"]
+    D -- "'login'" --> G["LoginComponent"]
+    D -- "'students*'" --> H{"authGuard\nisLoggedIn() ?"}
+    H -- "oui" --> I["StudentList / StudentDetail\n/ StudentForm"]
+    H -- "non" --> G
 ```
 
-**Fig. 1** — `app.routes.ts` ne déclare que deux chemins. `/register` affiche l'écran utile ; le chemin racine `''` réinstancie `AppComponent` lui-même dans son propre `router-outlet`, dont l'outlet interne ne correspond ensuite à aucune route. Résultat : visiter `/` affiche une page vide, sans lien vers `/register`.
+**Fig. 1** — Le header est monté une seule fois par `AppComponent` et reste affiché quelle que soit la route ; il s'abonne à `UserService.username$` pour savoir quoi afficher. Les quatre routes `students*` (`students`, `students/new`, `students/:id/edit`, `students/:id`) partagent le même `authGuard`, qui redirige vers `/login` si `isLoggedIn()` renvoie `false`.
 
-> ⚠️ **Point d'attention** — aucune page d'accueil ni redirection n'existe. Un utilisateur qui arrive sur `/` ne voit rien et n'a aucun moyen de trouver le formulaire sans connaître l'URL `/register`.
+> ℹ️ **Ordre des routes** — `students/new` est déclarée avant `students/:id` dans `app.routes.ts` : sans cet ordre, Angular matcherait `new` comme une valeur du paramètre `:id`.
 
 ## 04 — Cœur applicatif
 
-### Le formulaire d'inscription, de la saisie à l'API
+### Authentification : inscription → connexion → session
 
-`RegisterComponent` construit un `FormGroup` réactif, puis délègue l'appel réseau à `UserService`.
+`RegisterComponent` et `LoginComponent` délèguent tous deux à `UserService`, qui garde l'état de connexion à jour via un `BehaviorSubject` (`username$`) plutôt qu'une simple lecture ponctuelle de `localStorage` — c'est ce qui permet au header de réagir en direct au login/logout sans être réinstancié (il vit en dehors du `router-outlet`).
 
 ```mermaid
 flowchart LR
-    subgraph EXECUTION["Exécution"]
-        F1["registerForm\nFormGroup réactif\n4 champs required"] -->|onSubmit| F2["objet Register"]
-        F2 -->|register user| F3["UserService.register()\nhttpClient.post('/api/register', user)"]
-        F3 -->|POST| F4["Backend\nlocalhost:8080\nvia proxy.conf.json"]
-        F3 -->|subscribe next| F5["alert('SUCCESS')"]
+    subgraph INSCRIPTION["Inscription"]
+        R1["registerForm"] -->|onSubmit| R2["UserService.register()\nPOST /api/register"]
+        R2 -->|next| R3["Snackbar « Compte créé »\n+ navigate ['/login']"]
     end
-    subgraph TESTS["Tests — register.component.spec.ts"]
-        T1["provide UserService\nuseValue: UserMockService\n⚠ la classe, pas une instance"] -. remplace en test .-> F3
-        T2["UserMockService\nregister() return of()\n⚠ of() sans valeur ⇒\nnext() jamais déclenché"]
+    subgraph CONNEXION["Connexion"]
+        L1["loginForm"] -->|onSubmit| L2["UserService.login()\nPOST /api/login"]
+        L2 -->|"next: token"| L3["localStorage.setItem('jwt', token)\nusernameSubject.next(claim 'sub' décodé)"]
+        L3 --> L4["navigate ['/']"]
+        L2 -->|"error 401"| L5["invalidCredentials = true"]
+        L2 -->|"error (0, 5xx…)"| L6["serverUnreachable = true"]
     end
+    L3 -.->|"username$ | async"| H["HeaderComponent\nnom + menu de déconnexion"]
 ```
 
-**Fig. 2** — Le chemin d'exécution réel (haut) part de la saisie et va jusqu'au backend. Le chemin de test (bas) est câblé pour substituer `UserMockService`, mais deux défauts se cumulent : le provider fournit la *classe* au lieu d'une instance, et `of()` sans argument ne propagera jamais de valeur — le formulaire n'est donc jamais testé jusqu'au succès.
+**Fig. 2** — Le backend signe le JWT avec le nom d'utilisateur dans le claim standard `sub` (`Jwts.builder().subject(...)` côté Spring) ; `UserService` le décode via `decodeJwt()` pour peupler `username$`. Côté erreurs, seul un `401` distingue un mauvais mot de passe d'un backend réellement injoignable — un point qui a piégé une première implémentation basée sur `error.status === 0`, un statut que le proxy de dev (Vite) ne renvoie jamais : il transforme un `ECONNREFUSED` en `500` avant qu'il n'atteigne le navigateur.
 
-```ts
-// register.component.ts — onSubmit()
-onSubmit(): void {
-  this.submitted = true;
-  if (this.registerForm.invalid) { return; }
-  const registerUser: Register = { /* … 4 champs */ };
-  this.userService.register(registerUser)
-    .pipe(takeUntilDestroyed(this.destroyRef))
-    .subscribe(() => {
-      alert('SUCCESS!! :-)');
-      // TODO : router l'utilisateur vers la page de login
-    });
-}
+### Gestion des étudiants : CRUD protégé par guard + intercepteur
+
+```mermaid
+flowchart LR
+    U["Utilisateur connecté\nclique « Étudiants »"] --> G{"authGuard"}
+    G -- "isLoggedIn() === false" --> LOGIN["redirect '/login'"]
+    G -- "isLoggedIn() === true" --> LIST["StudentListComponent\nStudentService.getAll()"]
+    LIST -->|"GET /api/students"| I["jwtInterceptor\najoute Authorization: Bearer &lt;jwt&gt;"]
+    I --> API["Backend :8080"]
+    LIST --> NEW["+ Nouveau → /students/new"]
+    LIST --> DET["Voir → /students/:id"]
+    LIST --> EDIT["Modifier → /students/:id/edit"]
+    NEW & EDIT --> FORM["StudentFormComponent\ncreate() ou update() selon la route"]
 ```
+
+**Fig. 3** — `StudentFormComponent` sert à la fois la création et l'édition : `ngOnInit` regarde si l'URL porte un `:id` (`ActivatedRoute.snapshot.paramMap`) pour décider d'appeler `create()` ou `update()`, et pré-remplir le formulaire via `getById()` le cas échéant. `jwtInterceptor` est enregistré globalement (`provideHttpClient(withInterceptors([jwtInterceptor]))`), donc il s'applique aussi — sans effet — aux appels publics `/api/login` et `/api/register`.
 
 | Fichier | Rôle |
 |---|---|
-| `Register.ts` | Interface partagée : `firstName`, `lastName`, `login`, `password` — le contrat entre le formulaire et l'API. |
-| `user.service.ts` | Service réel, injecté via `providedIn: 'root'`. Appelle vraiment le backend avec `HttpClient`. |
-| `user-mock.service.ts` | Doublure pensée pour les tests, mais jamais correctement branchée (voir Fig. 2). |
+| `Register.ts` / `Login.ts` / `LoginResponse.ts` | Contrats des payloads d'authentification. |
+| `StudentRequest.ts` / `StudentResponse.ts` | Contrats CRUD : `StudentRequest` n'a pas d'`id` (créé côté serveur), `StudentResponse` l'a. |
+| `user.service.ts` | `register()`, `login()`, `logout()`, `isLoggedIn()`, et `username$` (état réactif dérivé du JWT). |
+| `student.service.ts` | Cinq méthodes CRUD (`getAll`, `getById`, `create`, `update`, `delete`) vers `/api/students`. |
+| `auth.guard.ts` | Guard fonctionnel `CanActivateFn`, synchrone via `isLoggedIn()`. |
+| `jwt.interceptor.ts` | `HttpInterceptorFn` fonctionnel, ajoute l'en-tête `Authorization` si un JWT est stocké. |
+| `user-mock.service.ts` / `student-mock.service.ts` | Doublures pensées pour les tests ; `user-mock` est branchée dans `login.component.spec.ts`, `student-mock` n'est utilisée par aucun test. |
 | `material.module.ts` | Regroupe ~25 modules Angular Material/CDK derrière un seul `MaterialModule` réutilisable. |
-
-> ⚠️ **Bug visible** — dans `register.component.html`, le champ mot de passe utilise `type="text"` au lieu de `type="password"` : la valeur saisie s'affiche en clair à l'écran.
 
 ## 05 — État des tests
 
 ### Ce que la suite Jest couvre vraiment
 
-Résultats mesurés en exécutant `npx jest --coverage` sur ce dépôt : 3 suites, 4 tests, tous verts.
+Résultats mesurés en exécutant `npx jest --coverage` sur ce dépôt : 4 suites, 7 tests, tous verts.
 
 | Instructions | Branches | Fonctions | Lignes |
 |---|---|---|---|
-| 85.1% | **0%** | 25% | 83.6% |
+| 79.3% | **37.5%** | 36.4% | 77.7% |
 
 | Fichier | Instr. | Lignes | État |
 |---|---:|---:|---|
-| `app.component.ts` (2 tests : création + titre) | 100% | 100% | 🟢 Couvert |
-| `user.service.ts` (`register()` jamais appelé en test) | 83.3% | 80.0% | 🟠 Fumée seulement |
-| `user-mock.service.ts` (n'est jamais réellement invoqué par un test) | 66.7% | 66.7% | 🟠 Fumée seulement |
-| `register.component.ts` (lignes 35–61 non couvertes : `ngOnInit`, `onSubmit`, `onReset`) | 62.5% | 59.1% | 🔴 Lacunaire |
-| `material.module.ts` (module de ré-export, trivial) | 100% | 100% | 🟢 Couvert |
+| `app.component.ts` | 100% | 100% | 🟢 Couvert |
+| `header.component.ts` (`logout()`, lignes 22–23, jamais exercé) | 84.6% | 81.8% | 🟠 Partiel |
+| `user.service.ts` (lignes 21, 41–47, 60 non couvertes : erreur de décodage, `logout()`, `isLoggedIn()`) | 80.0% | 79.2% | 🟠 Partiel |
+| `user-mock.service.ts` (jamais réellement invoquée par un test) | 50% | 50% | 🟠 Fumée seulement |
+| `login.component.ts` (lignes 38–65 non couvertes : tout `onSubmit()`) | 61.3% | 58.6% | 🔴 Lacunaire |
+| `register.component.ts` (lignes 39–65 non couvertes : tout `onSubmit()`) | 65.5% | 63.0% | 🔴 Lacunaire |
+| `material.module.ts` | 100% | 100% | 🟢 Couvert |
+| `home.*`, `student-list/detail/form.*`, `student.service.ts`, `student-mock.service.ts`, `auth.guard.ts`, `jwt.interceptor.ts` | — | — | ⚫ **Aucun test** (0 fichier `.spec.ts`) |
 
-> ⚠️ **85% d'instructions mais 0% de branches** — chaque test se contente d'instancier un composant ou un service (`expect(x).toBeTruthy()`). Aucun test ne remplit le formulaire, ne le soumet, ne vérifie un message de validation ni le contenu envoyé à l'API : le pourcentage global masque l'absence totale de test de comportement.
+> ⚠️ **79% d'instructions mais 37.5% de branches** — la plupart des specs se contentent d'instancier un composant (`fixture.detectChanges()`) sans jamais soumettre un formulaire ni déclencher une erreur HTTP : `onSubmit()` n'est exécuté nulle part pour `LoginComponent` et `RegisterComponent`.
+
+> ⚠️ **Mock mal câblé dans `register.component.spec.ts`** — le provider fournit `useValue: UserMockService` (la *classe*), pas une instance (`new UserMockService()`) comme le fait correctement `login.component.spec.ts` depuis sa création. Tant que `RegisterComponent.onSubmit()` n'est pas exercé par un test, ça ne casse rien — mais le jour où un test appellera `userService.register(...)`, il échouera avec « `.register is not a function` ».
+
+> ⚫ **La fonctionnalité « étudiants » n'a aucun test** — six fichiers (`student.service.ts`, `student-mock.service.ts`, `auth.guard.ts`, `jwt.interceptor.ts`, et les trois composants `student-*`) ont été ajoutés sans une seule spec ; Jest ne les instrumente même pas puisqu'aucun test ne les importe.
 
 ## 06 — Pistes d'amélioration
 
-### Par où continuer
+### Déjà résolu depuis la première version de ce document
+
+- ✅ Champ mot de passe en `type="password"` (était `type="text"` dans `register.component.html`).
+- ✅ La route racine `''` affiche une vraie page d'accueil (`HomeComponent`) au lieu de réinstancier `AppComponent` dans son propre `router-outlet`.
+- ✅ `alert()` remplacé par un snackbar Material (`MatSnackBar`) suivi d'une vraie redirection, à l'inscription comme à la connexion.
+- ✅ Mock `UserService` correctement instancié (`new UserMockService()`) dans `login.component.spec.ts`.
+
+### Reste à faire
 
 Dans l'esprit de l'exercice « Testez et améliorez une application » : d'abord combler les tests de comportement, puis corriger les défauts qu'ils révèlent.
 
-1. **[Priorité 1] Corriger l'injection du mock** — Remplacer `useValue: UserMockService` par `useValue: new UserMockService()` (ou `useClass`), et faire retourner à `register()` une valeur réelle via `of({})`.
-2. **[Priorité 1] Tester le comportement du formulaire** — Remplir `registerForm`, appeler `onSubmit()`, vérifier que `UserService.register` reçoit le bon payload et que `submitted` / les erreurs de validation s'affichent quand un champ requis est vide.
-3. **[Priorité 2] Corriger le champ mot de passe** — Passer `type="text"` à `type="password"` dans `register.component.html`.
-4. **[Priorité 2] Donner un sens à la route racine** — Rediriger `''` vers `/register` (`redirectTo`) plutôt que de réinstancier `AppComponent` dans son propre outlet.
-5. **[Priorité 3] Remplacer `alert()` par une vraie redirection** — Le TODO existe déjà dans le code : router vers une page de connexion après un succès, avec un retour visuel (snackbar Material déjà disponible via `MatSnackBarModule`).
+1. **[Priorité 1] Corriger l'injection du mock dans `register.component.spec.ts`** — remplacer `useValue: UserMockService` par `useValue: new UserMockService()`, sur le modèle de `login.component.spec.ts`.
+2. **[Priorité 1] Tester le comportement des formulaires login/register** — remplir le formulaire, appeler `onSubmit()`, vérifier le payload envoyé, les messages de validation, et les deux branches d'erreur du login (`invalidCredentials` vs `serverUnreachable`).
+3. **[Priorité 1] Écrire des tests pour la fonctionnalité étudiants** — actuellement 0% de couverture sur `StudentService` (5 méthodes CRUD), `authGuard` (redirection si non connecté), `jwtInterceptor` (en-tête `Authorization` ajouté/absent), et les trois composants `student-*`.
+4. **[Priorité 2] Réduire la taille du bundle initial** — `ng build` dépasse le budget de 214 kB (714 kB pour un budget de 500 kB) ; charger les routes `students*` en lazy (`loadComponent`) plutôt qu'en imports statiques dans `app.routes.ts` réduirait le bundle initial.
+5. **[Priorité 3] Réagir à un JWT expiré** — aujourd'hui, un token expiré rencontré par `jwtInterceptor` n'est pas détecté côté front ; un `401` sur une route protégée pourrait déclencher un `logout()` automatique plutôt que de laisser l'utilisateur face à une erreur silencieuse.
 
 ---
 
-*Généré à partir de l'analyse du code source et d'une exécution réelle de `npx jest --coverage` sur le dépôt, le 9 septembre 2026.*
+*Généré à partir de l'analyse du code source et d'une exécution réelle de `npx jest --coverage` sur le dépôt, le 11 septembre 2026.*

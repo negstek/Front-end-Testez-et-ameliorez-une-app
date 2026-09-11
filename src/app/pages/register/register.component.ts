@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MaterialModule } from '../../shared/material.module';
 import { UserService } from '../../core/service/user.service';
 import { Register } from '../../core/models/Register';
@@ -19,6 +20,7 @@ export class RegisterComponent implements OnInit {
   private formBuilder = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
   registerForm: FormGroup = new FormGroup({});
   submitted: boolean = false;
 
@@ -52,7 +54,7 @@ export class RegisterComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(
       () => {
-        alert('SUCCESS!! :-)');
+        this.snackBar.open('Compte créé avec succès !', 'Fermer', { duration: 3000 });
         this.router.navigate(['/login']);
       },
     );
