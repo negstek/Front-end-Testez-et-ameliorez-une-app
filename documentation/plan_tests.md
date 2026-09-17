@@ -23,6 +23,15 @@ Ce document liste les cas de tests à écrire pour ce projet, en deux étapes : 
 | **Recommandations** | Commencer par les formulaires les plus simples (inscription, connexion), puis évoluer vers les écrans plus complexes · mocker les appels d'API avec `cy.intercept()` |
 | **Point de vigilance** | Avant d'implémenter un nouveau test E2E, s'assurer que le précédent fonctionne normalement |
 
+### Étape 3 (à des fins d'apprentissage) — Tests d'acceptation avec Cucumber
+
+| | |
+|---|---|
+| **Outil** | Cucumber (`@badeball/cypress-cucumber-preprocessor`, exécuté au-dessus de Cypress) |
+| **Objectif** | Découvrir l'approche BDD (Behavior-Driven Development) : quelques scénarios d'acceptation existants sont réécrits en Gherkin (`Given/When/Then`), en supplément de la suite Cypress de l'étape 2 — celle-ci reste la référence pour la couverture E2E |
+| **Portée** | Un nombre volontairement restreint de scénarios (ex. connexion, création d'un étudiant), pas une réécriture complète du plan E2E |
+| **Résultat attendu** | Les scénarios `.feature` choisis s'exécutent avec succès et démontrent la mécanique Gherkin → step definitions → Cypress |
+
 ---
 
 ## Étape 1 — Détail des cas de tests Jest
@@ -31,17 +40,17 @@ Ce document liste les cas de tests à écrire pour ce projet, en deux étapes : 
 
 ```text
         ▲
-       /█\        Tests end-to-end — voir Étape 2 (Cypress)
-      /███\
-     /█████\
-    /███████\      Tests d'intégration — composant + template,
-   /█████████\      backend simulé (HttpTestingController)
-  /███████████\
- /█████████████\   Tests unitaires — fonctions pures, services,
-/███████████████\   guards, intercepteurs, validité de formulaires
+       /█\        Tests end-to-end — voir Étape 2 (Cypress)       ┐
+      /███\                                                       │
+     /█████\                                                      │  Cucumber (Gherkin) — voir Étape 3
+    /███████\      Tests d'intégration — composant + template,    │  reformule en Given/When/Then une
+   /█████████\      backend simulé (HttpTestingController)        │  sélection de scénarios existants,
+  /███████████\                                                   │  transversal à la pyramide plutôt
+ /█████████████\   Tests unitaires — fonctions pures, services,   │  qu'un niveau supplémentaire
+/███████████████\   guards, intercepteurs, validité de formulaires┘
 ```
 
-Le plus grand nombre de cas se trouve en bas de la pyramide (rapides, isolés, aucune dépendance au DOM), le plus petit nombre en haut. On commence par le bas.
+Le plus grand nombre de cas se trouve en bas de la pyramide (rapides, isolés, aucune dépendance au DOM), le plus petit nombre en haut. On commence par le bas. Cucumber n'ajoute pas un quatrième niveau : c'est une *formulation* (Gherkin) qui peut s'appliquer à n'importe quel niveau — ici, elle habille une sélection de scénarios E2E déjà couverts par Cypress (étape 2), elle ne les remplace pas.
 
 ### 1. Tests unitaires — fonctions pures
 
@@ -126,3 +135,19 @@ Chaque scénario mocke les appels API concernés via `cy.intercept()`, du formul
 | 10 | Détail d'un étudiant | Visiter `/students/1` | `GET /api/students/1` → 200 | Les informations de l'étudiant s'affichent |
 | 11 | Édition d'un étudiant | Depuis la fiche, cliquer « Modifier », changer un champ et soumettre | `GET /api/students/1` → 200, `PUT /api/students/1` → 200 | Redirection vers `/students` |
 | 12 | Suppression d'un étudiant | Depuis la liste, cliquer « Supprimer » et confirmer | `DELETE /api/students/1` → 200 | La ligne disparaît de la liste |
+
+---
+
+## Étape 3 — Détail des scénarios d'acceptation (Cucumber / Gherkin)
+
+> Prérequis technique : installer `@badeball/cypress-cucumber-preprocessor` et configurer Cypress pour reconnaître les fichiers `.feature` (résolution des steps dans un dossier `cypress/e2e/**/*.feature` + fichiers de step definitions associés).
+
+Ces scénarios reformulent en Gherkin une sélection ciblée de cas déjà couverts par la suite E2E de l'étape 2 (voir la colonne « Cas E2E correspondant ») — l'objectif est pédagogique (montrer la mécanique Gherkin → step definitions → Cypress), pas d'étendre la couverture fonctionnelle.
+
+| # | Feature | Scénario Gherkin | Cas E2E correspondant |
+|---|---|---|---|
+| C1 | Connexion | `Given` je suis sur la page de connexion<br>`And` je saisis un login et un mot de passe valides<br>`When` je soumets le formulaire<br>`Then` je suis redirigé vers l'accueil<br>`And` mon nom d'utilisateur est visible dans le header | Cas E2E #2 |
+| C2 | Connexion | `Given` je suis sur la page de connexion<br>`When` je soumets le formulaire avec un mauvais mot de passe<br>`Then` le message « Login ou mot de passe incorrect » s'affiche<br>`And` je reste sur la page de connexion | Cas E2E #3 |
+| C3 | Gestion des étudiants | `Given` je suis connecté<br>`And` je suis sur la liste des étudiants<br>`When` je crée un nouvel étudiant avec des informations valides<br>`Then` je suis redirigé vers la liste des étudiants | Cas E2E #9 |
+
+Ces trois scénarios `.feature` sont un point de départ ; ils pourront être complétés au fil de l'apprentissage sans obligation de couvrir l'intégralité du tableau de l'étape 2.

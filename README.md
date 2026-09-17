@@ -1,5 +1,7 @@
 # EtudiantFrontend
 
+[![Tests](https://github.com/negstek/Front-end-Testez-et-ameliorez-une-app/actions/workflows/tests.yml/badge.svg)](https://github.com/negstek/Front-end-Testez-et-ameliorez-une-app/actions/workflows/tests.yml)
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.16.
 
 ## Development server

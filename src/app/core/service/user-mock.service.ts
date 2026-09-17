@@ -6,7 +6,7 @@ import {Observable, of} from 'rxjs';
 export class UserMockService {
 
   register(user: Register): Observable<Object> {
-    return of();
+    return of({});
   }
 
   login(credentials: Login): Observable<string> {
