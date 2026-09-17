@@ -1,6 +1,7 @@
 # EtudiantFrontend
 
 [![Tests](https://github.com/negstek/Front-end-Testez-et-ameliorez-une-app/actions/workflows/tests.yml/badge.svg)](https://github.com/negstek/Front-end-Testez-et-ameliorez-une-app/actions/workflows/tests.yml)
+[![E2E](https://github.com/negstek/Front-end-Testez-et-ameliorez-une-app/actions/workflows/e2e.yml/badge.svg)](https://github.com/negstek/Front-end-Testez-et-ameliorez-une-app/actions/workflows/e2e.yml)
 
 | Statements                  | Branches                | Functions                 | Lines             |
 | --------------------------- | ------------------------ | -------------------------- | ------------------ |
@@ -46,21 +47,29 @@ This will compile your project and store the build artifacts in the `dist/` dire
 
 ## Running unit tests
 
-To execute unit tests with the [Jest](https://jestjs.io/) test runner, use the following command:
+To execute unit and integration tests with the [Jest](https://jestjs.io/) test runner, use the following command:
 
 ```bash
-jest
+npm test
 ```
+
+This runs the full suite (services, guards, interceptor, components and forms) with coverage. See [documentation/plan_tests.md](documentation/plan_tests.md) for the detailed list of cases (Étape 1).
 
 ## Running end-to-end tests
 
-For end-to-end (e2e) testing, run:
+End-to-end tests use [Cypress](https://docs.cypress.io/), mocking every API call with `cy.intercept()`. See [documentation/plan_tests.md](documentation/plan_tests.md) for the detailed list of scenarios (Étape 2).
 
 ```bash
-ng e2e
+npm run e2e
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Opens the Cypress interactive runner (requires `npm start` running in another terminal). To run the whole suite headlessly in one command (starts the dev server, runs the tests, then stops it):
+
+```bash
+npm run e2e:ci
+```
+
+`npm run e2e` is a shortcut for `npx cypress open`. From that interactive runner, [Cypress Studio](https://docs.cypress.io/app/guides/cypress-studio) (enabled via `experimentalStudio` in `cypress.config.ts`) lets you record clicks and typing directly in the browser and turn them into test code: open a spec, click "Add Commands to Test" (or right-click a step to add commands after it), interact with the page, then save — Cypress appends the generated commands to the spec file.
 
 ## Additional Resources
 
