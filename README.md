@@ -6,6 +6,8 @@
 | --------------------------- | ------------------------ | -------------------------- | ------------------ |
 | ![Statements](https://img.shields.io/badge/statements-100%25-brightgreen.svg?style=flat) | ![Branches](https://img.shields.io/badge/branches-100%25-brightgreen.svg?style=flat) | ![Functions](https://img.shields.io/badge/functions-100%25-brightgreen.svg?style=flat) | ![Lines](https://img.shields.io/badge/lines-100%25-brightgreen.svg?style=flat) |
 
+[Rapport de couverture détaillé](https://negstek.github.io/Front-end-Testez-et-ameliorez-une-app/)
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.16.
 
 ## Development server
