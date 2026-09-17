@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,3 +23,16 @@ jobs:
       - run: npm ci
 
       - run: npx jest --ci
+
+      # Coverage badges are only regenerated/committed on main itself, not on PR branches
+      # (PRs from forks get a read-only GITHUB_TOKEN, so a push here would fail anyway).
+      - name: Update coverage badges in README
+        if: github.event_name == 'push'
+        run: npx istanbul-badges-readme
+
+      - name: Commit updated badges
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet README.md || (git add README.md && git commit -m "Update coverage badges [skip ci]" && git push)
